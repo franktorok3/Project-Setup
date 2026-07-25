@@ -1,0 +1,35 @@
+name: Standards CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standards-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate required standards files
+        run: |
+          test -f STACK_STANDARD.md
+          test -f RULESETS.md
+          test -f projects.yml
+          test -f .github/workflows/next-ci.yml
+          test -f scripts/audit-portfolio.mjs
+      - name: Validate auditor syntax
+        run: node --check scripts/audit-portfolio.mjs
+      - name: Validate manifest checker syntax
+        run: node --check scripts/check-manifest.mjs
