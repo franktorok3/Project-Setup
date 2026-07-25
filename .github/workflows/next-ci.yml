@@ -9,6 +9,9 @@ on:
       run-audit:
         type: boolean
         default: true
+      require-build:
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -27,7 +30,9 @@ jobs:
       - run: npm ci
       - run: npm run lint --if-present
       - run: npm run typecheck --if-present
+      - run: npm run type-check --if-present
       - run: npm run test --if-present
-      - run: npm run build
+      - if: ${{ inputs.require-build }}
+        run: npm run build
       - if: ${{ inputs.run-audit }}
         run: npm audit --audit-level=high
