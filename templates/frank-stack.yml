@@ -1,0 +1,14 @@
+standard_version: 1
+level: product
+platform:
+  framework: nextjs
+  hosting: vercel
+  database: supabase
+  analytics: posthog
+required:
+  ci: true
+  migrations: true
+  telemetry: true
+  health_check: true
+  rls: true
+  error_tracking: true
