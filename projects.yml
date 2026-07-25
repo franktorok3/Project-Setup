@@ -1,0 +1,34 @@
+version: 1
+projects:
+  - repository: franktorok3/torok
+    level: product
+    default_branch: master
+    visibility: public
+    stack:
+      framework: nextjs
+      hosting: vercel
+      database: supabase
+      analytics: posthog
+  - repository: franktorok3/Focal-Point-V2
+    level: prototype
+    default_branch: main
+    visibility: public
+    stack:
+      framework: nextjs
+      hosting: vercel
+  - repository: franktorok3/Wellumi-
+    level: prototype
+    default_branch: main
+    visibility: public
+  - repository: franktorok3/Floor-Finder
+    level: product
+    default_branch: main
+    visibility: private
+  - repository: franktorok3/sjjcc-grant-finder
+    level: prototype
+    default_branch: main
+    visibility: private
+  - repository: franktorok3/vercel-ai-gateway-demo
+    level: prototype
+    default_branch: main
+    visibility: private
