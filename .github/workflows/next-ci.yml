@@ -23,16 +23,59 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
-          cache: npm
-      - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm run typecheck --if-present
-      - run: npm run type-check --if-present
-      - run: npm run test --if-present
-      - if: ${{ inputs.require-build }}
-        run: npm run build
-      - if: ${{ inputs.run-audit }}
-        run: npm audit --audit-level=high
+
+      - name: Detect package manager
+        id: package-manager
+        shell: bash
+        run: |
+          if [[ -f pnpm-lock.yaml ]]; then
+            echo "name=pnpm" >> "$GITHUB_OUTPUT"
+          elif [[ -f package-lock.json ]]; then
+            echo "name=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "No supported lockfile found. Commit package-lock.json or pnpm-lock.yaml." >&2
+            exit 1
+          fi
+
+      - name: Enable Corepack
+        if: ${{ steps.package-manager.outputs.name == 'pnpm' }}
+        run: corepack enable
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          if [[ "${{ steps.package-manager.outputs.name }}" == "pnpm" ]]; then
+            pnpm install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: Lint
+        run: ${{ steps.package-manager.outputs.name }} run lint --if-present
+
+      - name: Typecheck
+        shell: bash
+        run: |
+          ${{ steps.package-manager.outputs.name }} run typecheck --if-present
+          ${{ steps.package-manager.outputs.name }} run type-check --if-present
+
+      - name: Test
+        run: ${{ steps.package-manager.outputs.name }} run test --if-present
+
+      - name: Build
+        if: ${{ inputs.require-build }}
+        run: ${{ steps.package-manager.outputs.name }} run build
+
+      - name: Dependency audit
+        if: ${{ inputs.run-audit }}
+        shell: bash
+        run: |
+          if [[ "${{ steps.package-manager.outputs.name }}" == "pnpm" ]]; then
+            pnpm audit --audit-level=high
+          else
+            npm audit --audit-level=high
+          fi
