@@ -24,10 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ inputs.node-version }}
-
       - name: Detect package manager
         id: package-manager
         shell: bash
@@ -41,9 +37,16 @@ jobs:
             exit 1
           fi
 
-      - name: Enable Corepack
+      - name: Setup pnpm
         if: ${{ steps.package-manager.outputs.name == 'pnpm' }}
-        run: corepack enable
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: ${{ steps.package-manager.outputs.name }}
 
       - name: Install dependencies
         shell: bash
