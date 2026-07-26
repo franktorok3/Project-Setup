@@ -36,6 +36,8 @@ jobs:
         run: |
           if [[ -f pnpm-lock.yaml ]]; then
             echo "name=pnpm" >> "$GITHUB_OUTPUT"
+            version=$(node -p "((require('./package.json').packageManager || 'pnpm@10.6.2').match(/^pnpm@([^+]+)/) || [,'10.6.2'])[1]")
+            echo "pnpm-version=$version" >> "$GITHUB_OUTPUT"
           elif [[ -f package-lock.json ]]; then
             echo "name=npm" >> "$GITHUB_OUTPUT"
           else
@@ -43,16 +45,17 @@ jobs:
             exit 1
           fi
 
-      - name: Setup pnpm
-        if: ${{ steps.package-manager.outputs.name == 'pnpm' }}
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node-version }}
-          cache: ${{ steps.package-manager.outputs.name }}
+
+      - name: Setup pnpm with Corepack
+        if: ${{ steps.package-manager.outputs.name == 'pnpm' }}
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare "pnpm@${{ steps.package-manager.outputs.pnpm-version }}" --activate
+          pnpm --version
 
       - name: Install dependencies
         shell: bash
