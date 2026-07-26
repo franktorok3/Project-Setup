@@ -12,6 +12,9 @@ on:
       audit-blocking:
         type: boolean
         default: false
+      require-lint:
+        type: boolean
+        default: true
       require-build:
         type: boolean
         default: true
@@ -62,6 +65,7 @@ jobs:
           fi
 
       - name: Lint
+        if: ${{ inputs.require-lint }}
         run: ${{ steps.package-manager.outputs.name }} run lint --if-present
 
       - name: Typecheck
