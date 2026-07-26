@@ -1,0 +1,23 @@
+name: Project Standard Manifest
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify standards declaration
+        shell: bash
+        run: |
+          test -f frank-stack.yml || { echo "frank-stack.yml is required"; exit 1; }
+          grep -Eq '^schema_version:[[:space:]]*1$' frank-stack.yml || { echo "schema_version: 1 is required"; exit 1; }
+          grep -Eq '^[[:space:]]*repository:[[:space:]]*franktorok3/Project-Setup$' frank-stack.yml || { echo "Project-Setup standard repository is required"; exit 1; }
+          grep -Eq '^[[:space:]]*production_changes_via_pull_request:[[:space:]]*required$' frank-stack.yml || { echo "PR governance declaration is required"; exit 1; }
+          grep -Eq '^[[:space:]]*secrets_in_repository:[[:space:]]*prohibited$' frank-stack.yml || { echo "secret governance declaration is required"; exit 1; }
