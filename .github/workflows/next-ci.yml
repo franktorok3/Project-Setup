@@ -9,6 +9,9 @@ on:
       run-audit:
         type: boolean
         default: true
+      audit-blocking:
+        type: boolean
+        default: false
       require-build:
         type: boolean
         default: true
@@ -74,8 +77,19 @@ jobs:
         if: ${{ inputs.require-build }}
         run: ${{ steps.package-manager.outputs.name }} run build
 
-      - name: Dependency audit
-        if: ${{ inputs.run-audit }}
+      - name: Dependency audit (blocking)
+        if: ${{ inputs.run-audit && inputs.audit-blocking }}
+        shell: bash
+        run: |
+          if [[ "${{ steps.package-manager.outputs.name }}" == "pnpm" ]]; then
+            pnpm audit --audit-level=high
+          else
+            npm audit --audit-level=high
+          fi
+
+      - name: Dependency audit (report only)
+        if: ${{ inputs.run-audit && !inputs.audit-blocking }}
+        continue-on-error: true
         shell: bash
         run: |
           if [[ "${{ steps.package-manager.outputs.name }}" == "pnpm" ]]; then
