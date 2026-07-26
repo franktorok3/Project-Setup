@@ -65,20 +65,33 @@ jobs:
 
       - name: Lint
         if: ${{ inputs.require-lint }}
-        run: ${{ steps.package-manager.outputs.name }} run lint --if-present
+        shell: bash
+        run: |
+          node -e 'const p=require("./package.json"); if (!p.scripts?.lint) { console.error("Required lint script is missing"); process.exit(1); }'
+          ${{ steps.package-manager.outputs.name }} run lint
 
       - name: Typecheck
         shell: bash
         run: |
-          ${{ steps.package-manager.outputs.name }} run typecheck --if-present
-          ${{ steps.package-manager.outputs.name }} run type-check --if-present
+          for script in typecheck type-check; do
+            if node -e "const p=require('./package.json'); process.exit(p.scripts?.['${script}'] ? 0 : 1)"; then
+              ${{ steps.package-manager.outputs.name }} run "$script"
+            fi
+          done
 
       - name: Test
-        run: ${{ steps.package-manager.outputs.name }} run test --if-present
+        shell: bash
+        run: |
+          if node -e 'const p=require("./package.json"); process.exit(p.scripts?.test ? 0 : 1)'; then
+            ${{ steps.package-manager.outputs.name }} run test
+          fi
 
       - name: Build
         if: ${{ inputs.require-build }}
-        run: ${{ steps.package-manager.outputs.name }} run build
+        shell: bash
+        run: |
+          node -e 'const p=require("./package.json"); if (!p.scripts?.build) { console.error("Required build script is missing"); process.exit(1); }'
+          ${{ steps.package-manager.outputs.name }} run build
 
       - name: Dependency audit (blocking)
         if: ${{ inputs.run-audit && inputs.audit-blocking }}
