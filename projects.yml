@@ -1,16 +1,30 @@
 version: 1
 projects:
+  - repository: franktorok3/Helicarrier
+    level: platform
+    default_branch: main
+    visibility: private
+    stack:
+      framework: control-plane
+      hosting: vercel
+      analytics: posthog
+  - repository: franktorok3/Project-Setup
+    level: platform
+    default_branch: main
+    visibility: public
+    stack:
+      framework: repository-standard
   - repository: franktorok3/torok
     level: product
     default_branch: master
-    visibility: public
+    visibility: private
     stack:
       framework: nextjs
       hosting: vercel
-      database: supabase
+      database: none
       analytics: posthog
   - repository: franktorok3/Focal-Point-V2
-    level: prototype
+    level: product
     default_branch: main
     visibility: public
     stack:
@@ -20,15 +34,19 @@ projects:
     level: prototype
     default_branch: main
     visibility: public
-  - repository: franktorok3/Floor-Finder
+  - repository: franktorok3/sjjcc-grant-finder
     level: product
     default_branch: main
     visibility: private
-  - repository: franktorok3/sjjcc-grant-finder
-    level: prototype
-    default_branch: main
-    visibility: private
+    stack:
+      framework: nextjs
+      hosting: vercel
+      database: prisma
+      analytics: posthog
   - repository: franktorok3/vercel-ai-gateway-demo
     level: prototype
     default_branch: main
     visibility: private
+    stack:
+      framework: nextjs
+      hosting: vercel
