@@ -14,6 +14,24 @@ Projects may differ in product logic, but they must meet consistent expectations
 4. Configure environment variables in the deployment platform.
 5. Protect the default branch and require the `Project Standard / verify` check.
 
+## Optional Astryx design profile
+
+New React 19+ products may select Astryx for a refined, accessible frontend
+baseline without making product design generic:
+
+```yaml
+design:
+  system: astryx
+  version: 0.1.9
+  theme: neutral
+  product_identity: project-owned
+```
+
+Use `templates/design/astryx/` for the installation contract and agent rules.
+The shared CI validates the declaration and runs Astryx Doctor. Projects may
+instead declare `custom` or `none`; Project Setup does not prescribe product
+features, brand, or user experience.
+
 ## Versioning
 
 Consumers should reference release tags such as `v1`. Until the first tag is created, consumers may reference `main`. Breaking changes require a new major version.

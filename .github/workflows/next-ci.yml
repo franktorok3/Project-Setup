@@ -66,6 +66,65 @@ jobs:
             npm ci
           fi
 
+      - name: Verify optional Astryx design profile
+        shell: bash
+        run: |
+          design_system=$(sed -n '/^[[:space:]]*design:[[:space:]]*$/,/^[^[:space:]]/s/^[[:space:]]*system:[[:space:]]*//p' frank-stack.yml | head -1 | tr -d "\"'")
+          if [[ -z "$design_system" || "$design_system" == "custom" || "$design_system" == "none" ]]; then
+            exit 0
+          fi
+          if [[ "$design_system" != "astryx" ]]; then
+            echo "Unsupported design.system: $design_system. Use astryx, custom, or none." >&2
+            exit 1
+          fi
+          design_version=$(sed -n '/^[[:space:]]*design:[[:space:]]*$/,/^[^[:space:]]/s/^[[:space:]]*version:[[:space:]]*//p' frank-stack.yml | head -1 | tr -d "\"'")
+          DESIGN_VERSION="$design_version" node <<'NODE'
+          const manifest = require('./package.json');
+          const all = {...manifest.dependencies, ...manifest.devDependencies};
+          const expected = process.env.DESIGN_VERSION ?? '';
+          if (!/^\d+\.\d+\.\d+$/.test(expected)) {
+            console.error('Astryx profile requires an exact design.version');
+            process.exitCode = 1;
+          }
+          const required = ['@astryxdesign/core', '@astryxdesign/cli'];
+          for (const name of required) {
+            if (!all[name]) {
+              console.error(`Astryx profile requires ${name}`);
+              process.exitCode = 1;
+            } else if (all[name] !== expected) {
+              console.error(`${name} must be pinned to ${expected}; found ${all[name]}`);
+              process.exitCode = 1;
+            }
+          }
+          const themes = Object.keys(all).filter((name) => name.startsWith('@astryxdesign/theme-'));
+          if (!themes.length) {
+            console.error('Astryx profile requires an @astryxdesign/theme-* package');
+            process.exitCode = 1;
+          }
+          for (const name of themes) {
+            if (all[name] !== expected) {
+              console.error(`${name} must be pinned to ${expected}; found ${all[name]}`);
+              process.exitCode = 1;
+            }
+          }
+          if (!all['@stylexjs/stylex'] || !/^0\.19\.\d+$/.test(all['@stylexjs/stylex'])) {
+            console.error('Astryx profile requires a pinned @stylexjs/stylex 0.19.x dependency');
+            process.exitCode = 1;
+          }
+          for (const name of ['react', 'react-dom']) {
+            const major = Number((all[name] ?? '').match(/\d+/)?.[0] ?? 0);
+            if (major < 19) {
+              console.error(`Astryx profile requires ${name} 19 or newer`);
+              process.exitCode = 1;
+            }
+          }
+          if (!manifest.scripts?.astryx) {
+            console.error('Astryx profile requires an "astryx" package script');
+            process.exitCode = 1;
+          }
+          NODE
+          ${{ steps.package-manager.outputs.name }} run astryx -- doctor --json
+
       - name: Lint
         if: ${{ inputs.require-lint }}
         shell: bash
