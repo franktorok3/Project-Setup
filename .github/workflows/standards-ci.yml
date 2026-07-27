@@ -29,6 +29,8 @@ jobs:
           test -f projects.yml
           test -f .github/workflows/next-ci.yml
           test -f scripts/audit-portfolio.mjs
+          test -f templates/design/astryx/README.md
+          test -f templates/design/astryx/AGENTS.fragment.md
       - name: Validate auditor syntax
         run: node --check scripts/audit-portfolio.mjs
       - name: Validate manifest checker syntax

@@ -5,6 +5,11 @@ platform:
   hosting: vercel
   database: supabase
   analytics: posthog
+design:
+  system: astryx
+  version: 0.1.9
+  theme: neutral
+  product_identity: project-owned
 required:
   ci: true
   migrations: true
