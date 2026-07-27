@@ -3,6 +3,7 @@ name: Portfolio Compliance Audit
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - projects.yml
       - scripts/audit-portfolio.mjs
@@ -25,15 +26,18 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Audit registered repositories
+        id: portfolio
+        continue-on-error: true
         env:
           PORTFOLIO_GITHUB_TOKEN: ${{ secrets.PORTFOLIO_GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/audit-portfolio.mjs
 
       - name: Publish current report issue
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -45,8 +49,15 @@ jobs:
           fi
 
       - name: Upload compliance report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: portfolio-compliance
           path: artifacts/portfolio-compliance.md
           retention-days: 30
+
+      - name: Enforce portfolio compliance
+        if: always() && steps.portfolio.outcome != 'success'
+        run: |
+          echo "Portfolio compliance failed. Review the published report."
+          exit 1
