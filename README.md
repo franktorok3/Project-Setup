@@ -13,7 +13,9 @@ Projects may differ in product logic, but they must meet consistent expectations
 3. For Prisma/PostgreSQL projects, use
    `templates/prisma-postgres/ci-caller.yml` and add a `test:integration`
    package script that fails closed when `DATABASE_INTEGRATION_TESTS=1`
-   (no silent skips to a green empty suite).
+   (no silent skips to a green empty suite). Copy
+   `templates/prisma-postgres/integration-proof.mjs` into the consumer and
+   write its proof only after the database assertions pass.
 4. Copy only the framework adapters needed by the project.
 5. Configure environment variables in the deployment platform.
 6. Protect the default branch and require the `Project Standard / verify` and,

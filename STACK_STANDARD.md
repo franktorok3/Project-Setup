@@ -55,6 +55,9 @@ The integration-test script must:
 - exist in `package.json` (missing script fails CI);
 - honor `DATABASE_INTEGRATION_TESTS=1` with fail-closed behavior;
 - execute real PostgreSQL-backed tests (not skip the suite to a green zero);
+- write the versioned proof contract to `POSTGRES_INTEGRATION_PROOF_PATH`
+  only after the PostgreSQL assertions complete;
+- record the non-empty test names and an exact matching `testsExecuted` count;
 - exit non-zero when the flag is set but the database is unavailable or no
   integration tests ran.
 

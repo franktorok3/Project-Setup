@@ -215,6 +215,7 @@ jobs:
         env:
           DATABASE_INTEGRATION_TESTS: "1"
           INTEGRATION_TEST_SCRIPT: ${{ inputs.postgres-integration-test-script }}
+          POSTGRES_INTEGRATION_PROOF_PATH: ${{ runner.temp }}/postgres-integration-proof.json
         run: |
           script="$INTEGRATION_TEST_SCRIPT"
           if [[ ! "$script" =~ ^[A-Za-z0-9:_-]+$ ]]; then
@@ -222,4 +223,24 @@ jobs:
             exit 1
           fi
           node -e "const p=require('./package.json'); const script=process.argv[1]; if (!p.scripts?.[script]) { console.error('Required database integration script is missing: ' + script); process.exit(1); }" "$script"
+          rm -f "$POSTGRES_INTEGRATION_PROOF_PATH"
           ${{ steps.package-manager.outputs.name }} run "$script"
+          node <<'NODE'
+          const fs = require("node:fs");
+          const proofPath = process.env.POSTGRES_INTEGRATION_PROOF_PATH;
+          if (!proofPath || !fs.existsSync(proofPath)) {
+            throw new Error("PostgreSQL integration proof was not produced");
+          }
+          const proof = JSON.parse(fs.readFileSync(proofPath, "utf8"));
+          if (
+            proof.schemaVersion !== 1 ||
+            proof.database !== "postgresql" ||
+            !Array.isArray(proof.tests) ||
+            proof.tests.length < 1 ||
+            proof.tests.some((name) => typeof name !== "string" || !name.trim()) ||
+            proof.testsExecuted !== proof.tests.length
+          ) {
+            throw new Error("PostgreSQL integration proof is invalid or records zero tests");
+          }
+          console.log(`Verified ${proof.testsExecuted} PostgreSQL integration test(s)`);
+          NODE
