@@ -29,7 +29,12 @@ jobs:
           test -f projects.yml
           test -f .github/workflows/next-ci.yml
           test -f scripts/audit-portfolio.mjs
+          test -f scripts/check-postgres-standard.mjs
+          test -f templates/prisma-postgres/ci-caller.yml
+          test -f templates/prisma-postgres/frank-stack.yml
       - name: Validate auditor syntax
         run: node --check scripts/audit-portfolio.mjs
       - name: Validate manifest checker syntax
         run: node --check scripts/check-manifest.mjs
+      - name: Validate conditional PostgreSQL standard
+        run: node scripts/check-postgres-standard.mjs

@@ -18,6 +18,12 @@ on:
       require-build:
         type: boolean
         default: true
+      require-postgres-integration:
+        type: boolean
+        default: false
+      postgres-integration-test-script:
+        type: string
+        default: test:integration
 
 permissions:
   contents: read
@@ -116,3 +122,100 @@ jobs:
           else
             npm audit --audit-level=high
           fi
+
+  postgres-integration:
+    name: postgres-integration
+    if: ${{ inputs.require-postgres-integration }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: project_integration
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/project_integration?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/project_integration?schema=public
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect package manager
+        id: package-manager
+        shell: bash
+        run: |
+          if [[ -f pnpm-lock.yaml ]]; then
+            echo "name=pnpm" >> "$GITHUB_OUTPUT"
+            version=$(node -p "((require('./package.json').packageManager || 'pnpm@10.6.2').match(/^pnpm@([^+]+)/) || [,'10.6.2'])[1]")
+            echo "pnpm-version=$version" >> "$GITHUB_OUTPUT"
+          elif [[ -f package-lock.json ]]; then
+            echo "name=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "No supported lockfile found. Commit package-lock.json or pnpm-lock.yaml." >&2
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Setup pnpm with Corepack
+        if: ${{ steps.package-manager.outputs.name == 'pnpm' }}
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare "pnpm@${{ steps.package-manager.outputs.pnpm-version }}" --activate
+          pnpm --version
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          if [[ "${{ steps.package-manager.outputs.name }}" == "pnpm" ]]; then
+            pnpm install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: Create local roles required by Supabase RLS migrations
+        shell: bash
+        run: |
+          if [[ "${{ steps.package-manager.outputs.name }}" == "pnpm" ]]; then
+            prisma=(pnpm exec prisma)
+          else
+            prisma=(npx prisma)
+          fi
+          "${prisma[@]}" db execute --url "$DIRECT_URL" --stdin <<'SQL'
+          DO $$ BEGIN CREATE ROLE anon; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE authenticated; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          DO $$ BEGIN CREATE ROLE service_role; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+          SQL
+
+      - name: Apply migrations and generate Prisma client
+        shell: bash
+        run: |
+          if [[ "${{ steps.package-manager.outputs.name }}" == "pnpm" ]]; then
+            pnpm exec prisma migrate deploy
+            pnpm exec prisma generate
+          else
+            npx prisma migrate deploy
+            npx prisma generate
+          fi
+
+      - name: Run PostgreSQL integration tests
+        shell: bash
+        env:
+          DATABASE_INTEGRATION_TESTS: "1"
+          INTEGRATION_TEST_SCRIPT: ${{ inputs.postgres-integration-test-script }}
+        run: |
+          script="$INTEGRATION_TEST_SCRIPT"
+          node -e "const p=require('./package.json'); const script=process.argv[1]; if (!p.scripts?.[script]) { console.error('Required database integration script is missing: ' + script); process.exit(1); }" "$script"
+          ${{ steps.package-manager.outputs.name }} run "$script"
