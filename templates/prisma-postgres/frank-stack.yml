@@ -1,0 +1,17 @@
+standard_version: 1
+level: product
+platform:
+  framework: nextjs
+  hosting: vercel
+  database: supabase
+  database_engine: postgres
+  orm: prisma
+  analytics: posthog
+required:
+  ci: true
+  migrations: true
+  postgres_integration: required
+  telemetry: true
+  health_check: true
+  rls: true
+  error_tracking: true

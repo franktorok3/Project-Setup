@@ -37,3 +37,30 @@ Everything in Product, plus:
 5. Every production-facing request path must produce useful failure telemetry.
 6. Analytics must avoid unnecessary sensitive content.
 7. Product-specific code never becomes the portfolio standard.
+
+## Conditional database standard
+
+Projects that declare Prisma with PostgreSQL must enable the shared
+`postgres-integration` job. The job must:
+
+- run PostgreSQL 16 in an isolated CI service;
+- provide separate `DATABASE_URL` and `DIRECT_URL` values;
+- pass `--url "$DIRECT_URL"` explicitly to `prisma db execute`;
+- apply version-controlled migrations with `prisma migrate deploy`;
+- generate the Prisma client from the reviewed schema; and
+- run a declared database integration-test script.
+
+The integration-test script must:
+
+- exist in `package.json` (missing script fails CI);
+- honor `DATABASE_INTEGRATION_TESTS=1` with fail-closed behavior;
+- execute real PostgreSQL-backed tests (not skip the suite to a green zero);
+- write the versioned proof contract to `POSTGRES_INTEGRATION_PROOF_PATH`
+  only after the PostgreSQL assertions complete;
+- record the non-empty test names and an exact matching `testsExecuted` count;
+- exit non-zero when the flag is set but the database is unavailable or no
+  integration tests ran.
+
+Projects without Prisma/PostgreSQL do not run this job. A repository-specific
+database workflow may replace the shared job only when its manifest records the
+exception and it provides equivalent evidence.
