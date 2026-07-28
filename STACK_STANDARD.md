@@ -50,6 +50,14 @@ Projects that declare Prisma with PostgreSQL must enable the shared
 - generate the Prisma client from the reviewed schema; and
 - run a declared database integration-test script.
 
+The integration-test script must:
+
+- exist in `package.json` (missing script fails CI);
+- honor `DATABASE_INTEGRATION_TESTS=1` with fail-closed behavior;
+- execute real PostgreSQL-backed tests (not skip the suite to a green zero);
+- exit non-zero when the flag is set but the database is unavailable or no
+  integration tests ran.
+
 Projects without Prisma/PostgreSQL do not run this job. A repository-specific
 database workflow may replace the shared job only when its manifest records the
 exception and it provides equivalent evidence.

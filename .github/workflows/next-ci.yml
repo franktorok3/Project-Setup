@@ -217,5 +217,9 @@ jobs:
           INTEGRATION_TEST_SCRIPT: ${{ inputs.postgres-integration-test-script }}
         run: |
           script="$INTEGRATION_TEST_SCRIPT"
+          if [[ ! "$script" =~ ^[A-Za-z0-9:_-]+$ ]]; then
+            echo "Invalid postgres-integration-test-script: $script" >&2
+            exit 1
+          fi
           node -e "const p=require('./package.json'); const script=process.argv[1]; if (!p.scripts?.[script]) { console.error('Required database integration script is missing: ' + script); process.exit(1); }" "$script"
           ${{ steps.package-manager.outputs.name }} run "$script"
